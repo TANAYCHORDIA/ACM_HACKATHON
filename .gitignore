@@ -1,0 +1,28 @@
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# IDE
+.vscode/
+.idea/
+
+# Test files
+test.sh
+recovery.py
+main.cpython-311.py_failed
+
+# Sample/test data
+image.jpg
+invalid.pdf
+
+# OS files
+.DS_Store
+Thumbs.db
