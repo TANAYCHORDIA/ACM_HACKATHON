@@ -6,6 +6,7 @@ from datetime import datetime
 from PIL import Image
 import io
 import numpy as np
+from utils.model_loader import get_model
 
 from utils.preprocessing import preprocess_image
 from utils.clinical import calculate_clinical_metrics
@@ -61,11 +62,15 @@ async def root():
 # --------------------------------------------------
 @app.get("/health")
 async def health_check():
+    model = get_model()
+    model_info = model.get_info()
     return {
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
-        "model_loaded": False
+        "model_loaded": model.is_loaded(),
+        **model_info
     }
+
 
 
 # --------------------------------------------------
@@ -93,36 +98,23 @@ async def predict(file: UploadFile = File(...)):
             image = image.convert("RGB")
 
         # Preprocess image
-        processed_image = preprocess_image(image, target_size=(224, 224))
-        logger.info(f"Image preprocessed: shape={processed_image.shape}")
-
-        # --------------------------------------------------
-        # Dummy prediction (replace with real model later)
-        # --------------------------------------------------
-        prediction = "Normal"
-        class_id = 0
-        confidence = 0.95
-
-        probabilities = {
-            "Normal": 0.95,
-            "Bacterial Pneumonia": 0.03,
-            "Viral Pneumonia": 0.02
-        }
-
-        # --------------------------------------------------
-        # Clinical metrics
-        # --------------------------------------------------
+        # Get model and predict (auto-switches between dummy/real)
+        model = get_model()
+        result = model.predict(processed_image)
+        
+        prediction = result["prediction"]
+        class_id = result["class_id"]
+        confidence = result["confidence"]
+        probabilities = result["probabilities"]
+        
+        # Calculate clinical metrics
         clinical_metrics = calculate_clinical_metrics(
             probabilities=probabilities,
             prediction=prediction,
             confidence=confidence
         )
 
-        logger.info(f"DEBUG - Clinical metrics: {clinical_metrics}")
-
-        # --------------------------------------------------
-        # FINAL RESPONSE (IMPORTANT FIX)
-        # --------------------------------------------------
+        # Build response
         response = {
             "success": True,
             "prediction": prediction,
@@ -130,17 +122,16 @@ async def predict(file: UploadFile = File(...)):
             "confidence": confidence,
             "probabilities": probabilities,
             "image_shape": list(processed_image.shape),
-            "message": "Dummy prediction - model not loaded yet"
+            "model_loaded": model.is_loaded(),
+            "ensemble_size": result.get("ensemble_size", 0),
+            "message": f"Prediction from {result['ensemble_size']}-model ensemble" if model.is_loaded() 
+                      else "Dummy prediction - add .h5 files to models/ folder"
         }
-
-        # Explicitly merge clinical metrics
-        response.update(clinical_metrics)
-        response["__ABSOLUTE_PROOF__"] = "THIS_CODE_IS_RUNNING"
-
-        logger.info(f"FINAL RESPONSE KEYS: {response.keys()}")
         
-
+        response.update(clinical_metrics)
+        
         return response
+
 
     except Image.UnidentifiedImageError:
         raise HTTPException(status_code=400, detail="Could not identify image file")
