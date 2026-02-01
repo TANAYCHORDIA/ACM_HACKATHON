@@ -14,15 +14,27 @@ __pycache__/
 .vscode/
 .idea/
 
-# Test files
-test.sh
+# Temporary debug files (keep these ignored)
 recovery.py
 main.cpython-311.py_failed
-
-# Sample/test data
-image.jpg
 invalid.pdf
+
+# Large model files (Tanay will add these locally)
+*.h5
+*.keras
+*.pt
+*.pth
+*.onnx
+
+# Large datasets (if needed)
+data/raw/
+data/processed/
 
 # OS files
 .DS_Store
 Thumbs.db
+
+# Logs
+*.log
+
+# NOTE: test.sh and image.jpg are NOT ignored - shared with team
